@@ -1,0 +1,35 @@
+#! /usr/bin/env ruby
+
+$:.unshift File.join(File.dirname(File.expand_path(__FILE__)), 'lib')
+
+require 'dnsruby'
+require 'active_record'
+require 'nginx_vhosts'
+require 'powerdns/domain'
+require 'powerdns/record'
+require 'axfr'
+require 'json'
+
+if ARGV.empty?
+  puts "Usage: #{$0} CONFIG_FILE"
+  exit 1
+end
+config_file = ARGV.shift
+config = JSON.parse File.read(config_file)
+
+vhosts  = NginxVhosts.parse config['domain'], config['nginx']['vhosts_path'], config['nginx']['local_ip_pattern']
+records = AXFR.parse config['axfr']['dns_server'], config['domain'], config['axfr']['ip_map'], vhosts
+
+ActiveRecord::Base.establish_connection config['database']
+
+domain = PowerDNS::Domain.where(name: config['domain']).first
+records.each do |record|
+  PowerDNS::Record.where(domain: domain, name: record[:name], type: record[:type].to_s).first_or_initialize.tap do |local_record|
+    local_record.type = record[:type].to_s
+    local_record.ttl  = record[:ttl].to_i
+    local_record.prio = record[:priority].to_i
+    local_record.content = record[:content].to_s
+    local_record.change_date = Time.now.to_i
+    local_record.save
+  end
+end

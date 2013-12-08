@@ -1,0 +1,20 @@
+{
+  "domain": "example.com",
+  "database": {
+    "adapter": "mysql2",
+    "host": "localhost",
+    "database": "powerdns",
+    "username": "powerdns",
+    "password": "password"
+  },
+  "nginx": {
+    "vhosts_path": "/etc/nginx/vhosts.d",
+    "local_ip_pattern": "192"
+  },
+  "axfr": {
+    "dns_server": "ns.example.com",
+    "ip_map": {
+      "xxx.xxx.xxx.xxx": "yyy.yyy.yyy.yyy"
+    }
+  }
+}
